@@ -53,7 +53,7 @@ app.get('/location', (request, response) => {
     response.send(createLocation);
     let cityName = 'Lynnwood';
     if(request.query !== cityName){
-        app.get('/location', (request, response) => {
+        app.get('/', (request, response) => {
         response.status(500).send('Oops wrong city');
         });
     }

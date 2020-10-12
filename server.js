@@ -42,7 +42,7 @@ function weatherConfig (request, response){
     });
     response.send(weatherArr);
     app.get('*', (request, response) => {
-        response.status(500).send('Sorry, something went wrong,');
+        response.status(404).send('Sorry, something went wrong,');
     });
 }
 
@@ -52,7 +52,7 @@ app.get('/location', (request, response) => {
     const createLocation = new Location(locationData);
     response.send(createLocation);
     let cityName = 'Lynnwood';
-    if(request.query !== cityName){
+    if(request.query.city !== cityName){
         app.get('/', (request, response) => {
         response.status(500).send('Oops wrong city');
         });
@@ -64,6 +64,17 @@ app.get('/weather', weatherConfig);
 
 
 // simple error feature
-
+function handleLocation(request, response) {
+    try {
+      // try to "resolve" the following (no errors)
+      const geoData = require('./data/location.json');
+      const city = request.query.city; // "seattle" -> localhost:3000/location?city=seattle
+      const locationData = new Location(city, geoData);
+      response.json(locationData);
+    } catch {
+      // otherwise, if an error is handed off, handle it here
+      response.status(500).send('sorry, something broke.');
+    }
+  }
 
 app.listen(PORT,() => console.log(`Listening on port ${PORT}`));

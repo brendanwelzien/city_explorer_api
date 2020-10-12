@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { response } = require('express');
+const response = require('express');
 const app = express();
 
 //to accept incoming traffic
@@ -52,8 +52,10 @@ app.get('/location', (request, response) => {
     const createLocation = new Location(locationData);
     response.send(createLocation);
     let cityName = 'Lynnwood';
-    if(request.query.city !== cityName){
-        return response.status(500).send('Oops wrong name');
+    if(request.query !== cityName){
+        app.get('/location', (request, response) => {
+        response.status(500).send('Oops wrong city');
+        });
     }
 })
 

@@ -4,7 +4,6 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const response = require('express');
 const app = express();
 const superagent = require('superagent');
 
@@ -23,27 +22,29 @@ app.get('/', (request, response) => {
 });
 
 // functions
-function Location (locationObj) {
+function Location (locationObj, city) {
+    this.search_query = city;
     this.formatted_query = locationObj[0].display_name;
     this.latitude = locationObj[0].lat;
     this.longitude = locationObj[0].lon;
 }
 function Weather(weatherObj) {
     
-    this.forecast = weatherObj[0].weather.description;
-    this.time = weatherObj[0].datetime;
+    this.forecast = weatherObj.weather.description;
+    this.time = weatherObj.datetime;
 }
 
 function Trails(trailObj) {
-    this.name = trailObj.trails[0].name;
-    this.location = trailObj.trails[0].location;
-    this.length = trailObj.trails[0].length;
-    this.stars = trailObj.trails[0].stars;
-    this.star_votes = trailObj.trails[0].starVotes;
-    this.summary = trailObj.trails[0].summary;
-    this.conditions = trailObj.trails[0].conditionStatus;
-    this.condition_date = trailObj.trails[0].conditionDate;
-    this.condition_time = trailObj.trails[0].conditionDetails;
+    console.log(trailObj);
+    this.name = trailObj.name;
+    this.location = trailObj.location;
+    this.length = trailObj.length;
+    this.stars = trailObj.stars;
+    this.star_votes = trailObj.starVotes;
+    this.summary = trailObj.summary;
+    this.conditions = trailObj.conditionStatus;
+    this.condition_date = trailObj.conditionDate;
+    this.condition_time = trailObj.conditionDetails;
 }
 
 // weather request and response
@@ -63,18 +64,17 @@ function Trails(trailObj) {
 */
 app.get('/weather', weatherConfig);
 function weatherConfig (request, response){
-const cityData = req.query.city;
+const cityData = request.query.search_query;
 const GEOCODEAPI = process.env.GEOCODE_API_KEY;
-const weatherURL = `https://api.weatherbit.io/v2.0/current?city=${cityData}&key=${GEOCODEAPI}`; 
+const weatherURL = `https://api.weatherbit.io/v2.0/forecast/daily?city=${cityData}&days=7&key=${GEOCODEAPI}`; 
 
 console.log(weatherURL);
 // superagent process is GET > SET > THEN > RETURN XXXX > CATCH?
 superagent.get(weatherURL)
 
-.set('key', GEOCODEAPI)
     .then(weatherRetrievalInfo => {
         const weatherObj = weatherRetrievalInfo.body;
-
+        console.log(weatherObj);
         let weatherCollection = weatherObj.data.map( objIndex => {
             const weatherMapFcn = new Weather(objIndex);
             return weatherMapFcn;
@@ -86,22 +86,25 @@ superagent.get(weatherURL)
 
 // location request and response
 app.get('/location', (request, response) => {
+    console.log(request.query.city);
     const cityDataTwo = request.query.city;
     const LOCATIONIQAPI = process.env.LOCATIONIQ_API_KEY;
-    const locationURL = `https://us1.locationiq.com/v1/search.php?key=${LOCATIONIQAPI}&q=${cityDataTwo}`
+    const locationURL = `https://us1.locationiq.com/v1/search.php?key=${LOCATIONIQAPI}&q=${cityDataTwo}&format=json`
     superagent.get(locationURL)
         .then(locationInfo => {
+            console.log(locationInfo.body);
             const locationObj = locationInfo.body;
-            const locationNew = new Location(locationObj);
+            const locationNew = new Location(locationObj, cityDataTwo);
             response.send(locationNew);
         })
         .catch(error => {
+            console.log(error);
             return response.status(500).send(error);
         });
 });
 
 //trails 
-app.get('trails', trailFcn);
+app.get('/trails', trailFcn);
 
 function trailFcn(request, response) {
     const TRAILSAPI = process.env.TRAILS_API_KEY;
@@ -115,6 +118,7 @@ function trailFcn(request, response) {
         const trailObj = trailData.body;
         
         let trailCollection = trailObj.trails.map(trailIndex => {
+            console.log(trailIndex);
             const trailNew = new Trails(trailIndex);
             return trailNew;
         });
@@ -137,4 +141,6 @@ function trailFcn(request, response) {
     }
   }
 */
-app.listen(PORT);
+app.listen(PORT, () => {
+    console.log(`${PORT}`)
+});

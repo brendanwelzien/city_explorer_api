@@ -117,13 +117,18 @@ app.get('/location', (request, response) => {
 
     const selectSQL = 'SELECT * FROM location;';
     const cityDataTwo = request.query.city;
+
     console.log(request.query.city);
     client.query(selectSQL)
+
+
         .then(dataSQL => {
             let grabValues = dataSQL.rows.map(city => city.search_query.toLowerCase());
             console.log(grabValues);
+
             if(grabValues.includes(cityDataTwo)){
                 client.query(`SELECT * FROM location WHERE search_query = '${cityDataTwo}'`)
+
                 .then(placeStuff => {
                     response.send(placeStuff.rows[0]);
                 });
@@ -134,14 +139,20 @@ app.get('/location', (request, response) => {
                 superagent.get(locationURL)
                 .then(sqlConfig => {
                     const sqlArr = sqlConfig.body[0];
-                    console.log(sqlArr);
+
+
+                    console.log(sqlArr); // (locationObj, city)
                     const locationNew = new Location(sqlArr, cityDataTwo);
                     //response.send(locationNew);
                     const cityName = locationNew.search_query;
                     const cityInfo = locationNew.formatted_query;
+
                     const cityLat = parseFloat(locationNew.latitude);
+
                     const cityLon = parseFloat(locationNew.longitude);
+
                     const cityString = 'INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4)';
+
                     const cityLayout = [cityName, cityInfo, cityLat, cityLon];
                     client.query(cityString, cityLayout)
                      // this utilizes crud / rest with formatting
@@ -153,7 +164,7 @@ app.get('/location', (request, response) => {
                 });
             })
            .catch(error => {
-                response.status(500).send(error);
+                response.status(500).send(error); // error is for retrieving location
             });
         }
 });
@@ -207,4 +218,4 @@ app.listen(PORT, () => {
 })
 .catch( error => {
     console.error('connection error', error);
-})
+}) // taken from lecture example

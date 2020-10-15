@@ -9,7 +9,8 @@ const superagent = require('superagent');
 
 //to accept incoming traffic
 const PORT = process.env.PORT || 3001;
-
+const movieAPI = process.env.MOVIE_API_KEY;
+const yelpAPI = process.env.YELP_API_KEY;
 
 
 
@@ -35,7 +36,6 @@ function Weather(weatherObj) {
 }
 
 function Trails(trailObj) {
-    console.log(trailObj);
     this.name = trailObj.name;
     this.location = trailObj.location;
     this.length = trailObj.length;
@@ -47,34 +47,38 @@ function Trails(trailObj) {
     this.condition_time = trailObj.conditionDetails;
 }
 
-// weather request and response
-
- /*   let weatherArr = [];
-    let obj = require('./data/weather.json');
-    obj.data.forEach(label => {
-        let weatherStuff = new Weather(label);
-        console.log(label);
-        weatherArr.push(weatherStuff);
-    });
-    response.send(weatherArr);
-    app.get('*', (request, response) => {
-        response.status(404).send('Sorry, something went wrong,');
-    });
+function yelpRestaurant(yelpObj) {
+    this.name = yelpObj.name;
+    this.image_url = yelpObj.image_url;
+    this.price = yelpObj.price;
+    this.rating = yelpObj.rating;
+    this.url = yelpObj.url;
 }
-*/
+
+function Movie(movieObj) {
+    this.title = movieObj.title;
+    this.overview = movieObj.overview;
+    this.average_votes = movieObj.vote_average;
+    this.total_votes = movieObj.vote_count;
+    this.image_url =`https://image.tmdb.org/t/p/w500/${movieObj.poster_path}`;
+    this.popularity = movieObj.popularity;
+    this.released_on = movieObj.release_date;
+}
+
+
 app.get('/weather', weatherConfig);
 function weatherConfig (request, response){
 const cityData = request.query.search_query;
 const GEOCODEAPI = process.env.GEOCODE_API_KEY;
 const weatherURL = `https://api.weatherbit.io/v2.0/forecast/daily?city=${cityData}&days=7&key=${GEOCODEAPI}`; 
 
-console.log(weatherURL);
+
 // superagent process is GET > SET > THEN > RETURN XXXX > CATCH?
 superagent.get(weatherURL)
 
     .then(weatherRetrievalInfo => {
         const weatherObj = weatherRetrievalInfo.body;
-        console.log(weatherObj);
+        
         let weatherCollection = weatherObj.data.map( objIndex => {
             const weatherMapFcn = new Weather(objIndex);
             return weatherMapFcn;
@@ -86,19 +90,19 @@ superagent.get(weatherURL)
 
 // location request and response
 app.get('/location', (request, response) => {
-    console.log(request.query.city);
+    
     const cityDataTwo = request.query.city;
     const LOCATIONIQAPI = process.env.LOCATIONIQ_API_KEY;
     const locationURL = `https://us1.locationiq.com/v1/search.php?key=${LOCATIONIQAPI}&q=${cityDataTwo}&format=json`
     superagent.get(locationURL)
         .then(locationInfo => {
-            console.log(locationInfo.body);
+            
             const locationObj = locationInfo.body;
             const locationNew = new Location(locationObj, cityDataTwo);
             response.send(locationNew);
         })
         .catch(error => {
-            console.log(error);
+            
             return response.status(500).send(error);
         });
 });
@@ -118,7 +122,7 @@ function trailFcn(request, response) {
         const trailObj = trailData.body;
         
         let trailCollection = trailObj.trails.map(trailIndex => {
-            console.log(trailIndex);
+            
             const trailNew = new Trails(trailIndex);
             return trailNew;
         });
@@ -126,21 +130,59 @@ function trailFcn(request, response) {
     });  
 }
 
+//Yelp
+app.get('/yelp', restaurantConfig);
 
-// simple error feature
-/*function handleLocation(request, response) {
-    try {
-      // try to "resolve" the following (no errors)
-      const geoData = require('./data/location.json');
-      const city = request.query.city; // "seattle" -> localhost:3000/location?city=seattle
-      const locationData = new Location(city, geoData);
-      response.json(locationData);
-    } catch {
-      // otherwise, if an error is handed off, handle it here
-      response.status(500).send('sorry, something broke.');
-    }
-  }
-*/
+function restaurantConfig(request, response) {
+    const latData = request.query.latitude;
+    const longData =request.query.longitude;
+    const yelpURL = `https://api.yelp.com/v3/businesses/search?latitude=${latData}&longitude=${longData}`;
+    
+    superagent.get(yelpURL)
+    .set('Authorization',`Bearer ${yelpAPI}`)
+
+    .then(yelpData => {
+        const yelpObj = yelpData.body;
+        console.log(yelpObj);
+
+        let yelpCollection = yelpObj.businesses.map(yelpIndex => {
+            const restaurantNew = new yelpRestaurant(yelpIndex);
+            return restaurantNew;
+        });
+        let sliceYelp = yelpCollection.slice(0,5);
+        response.send(sliceYelp);
+    });
+}
+
+//Movie
+app.get('/movies',movieConfig);
+
+function movieConfig(request, response) {
+   
+    const movieURL = `https://api.themoviedb.org/3/search/movie?api_key=${movieAPI}&query=${request.query.search_query}`;
+
+    superagent.get(movieURL)
+    .set('key', movieAPI)
+    .then(movieData => {
+        const movieObj = movieData.body;
+        
+        let movieCollection = movieObj.results.map(movieIndex => {
+           
+            const movieNew = new Movie(movieIndex);
+            return movieNew;
+        });
+        response.send(movieCollection);
+    })
+    .catch(err => {
+        response.status(500).send(err);
+    });
+}
+
+
+
+
+
+
 app.listen(PORT, () => {
     console.log(`${PORT}`)
 });
